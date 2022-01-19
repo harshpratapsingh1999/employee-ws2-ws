@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="getEmployeeFlow" doc:id="0ad7e033-e3ff-4db5-a286-ea5c32db78d3" >
+		<http:listener doc:name="GET / emp" doc:id="74be0edf-e777-4e66-b723-f10719f950ec" config-ref="HTTP_Listener_config" path="/emp" allowedMethods="GET"/>
+		<db:select doc:name="Select" doc:id="eaa4bf67-92f4-4000-bb2d-415b43a17451" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * from employee]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="11eaca95-d1dd-4a10-ada4-36888650e2e1" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="b43b99eb-9203-4bac-9f9d-6b0e7e7c02ea" />
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="4fd44b45-4ba8-4d73-884a-5ffe21559671" type="DB:BAD_SQL_SYNTAX">
+				<ee:transform doc:name="Transform Message" doc:id="7caa866a-4cef-4b59-93a7-df1a675412f3" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Flow level Error"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+	<flow name="postEmployeeFlow" doc:id="8ee1d8a8-e2d3-46ba-957d-1f4b678140f7" >
+		<http:listener doc:name="POST / emp" doc:id="8d7befc2-d814-41a4-ad40-011778825347" config-ref="HTTP_Listener_config" path="/emp" allowedMethods="POST"/>
+		<db:insert doc:name="Insert" doc:id="9d4af032-c428-4ff1-aae6-49d51615afbb" config-ref="Database_Config">
+			<db:sql ><![CDATA[INSERT INTO employee values (:id, :name, :salary)]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id: payload.id,
+	name: payload.name,
+	salary: payload.salary
+}]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="116e5dd2-7854-4ced-8f51-ee23ca52885b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Employee added successfully"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="6597ba9c-c70c-4559-9b71-455c28fa20a8" />
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="d4c418d9-35a9-4ea0-8be1-1a35970dc069" type="DB:BAD_SQL_SYNTAX">
+				<ee:transform doc:name="Transform Message" doc:id="9e39cc57-39aa-4159-bdf1-62d5bc009033" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "flow level error"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>
